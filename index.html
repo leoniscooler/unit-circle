@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unit Circle</title>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0f1724;
+    color: #e6eef8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+
+  svg {
+    width: 90%;
+    max-width: 500px;
+    height: auto;
+    touch-action: none;
+  }
+
+  .slider-container {
+    width: 90%;
+    max-width: 500px;
+    margin-top: 20px;
+  }
+
+  input[type="range"] {
+    width: 100%;
+  }
+
+  .readouts {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    max-width: 500px;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+
+  .value {
+    color: #60a5fa;
+    font-weight: bold;
+  }
+
+  circle.point {
+    fill: #34d399;
+    stroke: #00150b;
+    stroke-width: 1.5;
+  }
+
+  line.radius {
+    stroke: #60a5fa;
+    stroke-width: 3;
+  }
+
+  line.proj {
+    stroke: rgba(255,255,255,0.2);
+    stroke-width: 2;
+    stroke-dasharray: 6 5;
+  }
+</style>
+</head>
+<body>
+
+<svg id="svg" viewBox="0 0 500 500">
+  <circle cx="250" cy="250" r="200" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+  <line x1="250" y1="250" x2="450" y2="250" class="radius"/>
+  <line id="projLine" x1="250" y1="250" x2="450" y2="250" class="proj"/>
+  <line id="verticalLine" x1="450" y1="250" x2="450" y2="250" class="proj"/>
+  <circle id="point" class="point" cx="450" cy="250" r="8"/>
+</svg>
+
+<div class="slider-container">
+  <input id="angleSlider" type="range" min="0" max="360" step="0.1" value="0">
+</div>
+
+<div class="readouts">
+  <div>Angle: <span id="angleDisplay" class="value">0°</span></div>
+  <div>Coords: <span id="coordDisplay" class="value">(1, 0)</span></div>
+  <div>sin: <span id="sinVal" class="value">0</span> | cos: <span id="cosVal" class="value">1</span> | tan: <span id="tanVal" class="value">0</span></div>
+</div>
+
+<script>
+const svg = document.getElementById('svg');
+const point = document.getElementById('point');
+const radiusLine = svg.querySelector('.radius');
+const projLine = document.getElementById('projLine');
+const verticalLine = document.getElementById('verticalLine');
+
+const angleSlider = document.getElementById('angleSlider');
+const angleDisplay = document.getElementById('angleDisplay');
+const coordDisplay = document.getElementById('coordDisplay');
+const sinVal = document.getElementById('sinVal');
+const cosVal = document.getElementById('cosVal');
+const tanVal = document.getElementById('tanVal');
+
+const center = { x:250, y:250 };
+const radius = 200;
+let angle = 0;
+
+function round(v,n=4){return Math.round(v*10**n)/10**n;}
+
+// invert angle for clockwise rotation
+function angleToPoint(a){
+  return {
+    x: center.x + radius*Math.cos(-a),
+    y: center.y + radius*Math.sin(-a)
+  };
+}
+
+function updateAll(){
+  const rad = angle;
+  const deg = rad * 180/Math.PI;
+  const p = angleToPoint(rad);
+  point.setAttribute('cx', p.x);
+  point.setAttribute('cy', p.y);
+
+  radiusLine.setAttribute('x2', p.x);
+  radiusLine.setAttribute('y2', p.y);
+
+  projLine.setAttribute('x2', p.x);
+  projLine.setAttribute('y2', center.y);
+
+  verticalLine.setAttribute('x1', p.x);
+  verticalLine.setAttribute('y1', center.y);
+  verticalLine.setAttribute('x2', p.x);
+  verticalLine.setAttribute('y2', p.y);
+
+  angleSlider.value = deg;
+  angleDisplay.textContent = round(deg) + '°';
+
+  const cx = Math.cos(rad);
+  const sy = Math.sin(rad);
+  coordDisplay.textContent = `(${round(cx)}, ${round(sy)})`;
+  sinVal.textContent = round(sy);
+  cosVal.textContent = round(cx);
+  if(Math.abs(cx) < 1e-7) tanVal.textContent = '∞';
+  else tanVal.textContent = round(sy/cx);
+}
+
+angleSlider.addEventListener('input', ()=>{
+  angle = angleSlider.value * Math.PI/180;
+  updateAll();
+});
+
+// drag point clockwise
+let isDragging = false;
+function getSVGPoint(clientX, clientY){
+  const rect = svg.getBoundingClientRect();
+  return {
+    x: (clientX - rect.left)*500/rect.width,
+    y: (clientY - rect.top)*500/rect.height
+  };
+}
+svg.addEventListener('pointerdown', ev=>{
+  isDragging=true;
+  const pt = getSVGPoint(ev.clientX, ev.clientY);
+  angle = -Math.atan2(pt.y-center.y, pt.x-center.x); // negative for clockwise
+  updateAll();
+});
+svg.addEventListener('pointermove', ev=>{
+  if(!isDragging) return;
+  const pt = getSVGPoint(ev.clientX, ev.clientY);
+  angle = -Math.atan2(pt.y-center.y, pt.x-center.x);
+  updateAll();
+});
+svg.addEventListener('pointerup', ()=>{isDragging=false;});
+
+updateAll();
+</script>
+
+</body>
+</html>
